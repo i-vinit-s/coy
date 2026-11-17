@@ -1,6 +1,6 @@
 'use client';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { ShieldCheck, RefreshCw } from 'lucide-react';
+import { LockKeyhole, RefreshCw, ArrowUpRight, Heart } from 'lucide-react';
 import { getFeed, getMatches, sendSwipe } from '../lib/api';
 import Navigation from '../components/Navigation';
 import SwipeDeck from '../components/SwipeDeck';
@@ -73,18 +73,13 @@ export default function Page() {
       if (result.matched) {
         setMatches((current) => [result.match, ...current.filter((p) => p.id !== result.match.id)]);
         setMatch(result.match);
-      } else
-        setNotice(
-          action === 'like'
-            ? 'Like sent. Your secret is safe.'
-            : 'Passed. On to a new possibility.',
-        );
+      } else setNotice(action === 'like' ? 'Like saved.' : 'Passed.');
       // Keep controls locked until the card's exit animation finishes.
       await new Promise((resolve) => setTimeout(resolve, 260));
     } catch (error) {
       if (error.status === 409) {
         await refresh();
-        setNotice('Your latest decisions are up to date.');
+        setNotice('Feed updated.');
       } else setSwipeError(error.message);
     } finally {
       locked.current = false;
@@ -92,92 +87,117 @@ export default function Page() {
     }
   }
 
+  function changeTab(next) {
+    setTab(next);
+    window.scrollTo({ top: 0, behavior: 'instant' });
+  }
+
+  const footer = (
+    <footer className="site-footer">
+      <div className="footer-inner">
+        <img src="/coy-wordmark.svg" alt="Coy" width="64" height="24" />
+        <p>Coy Discover</p>
+        <a href="https://getcoy.com/" target="_blank" rel="noreferrer">
+          About Coy <ArrowUpRight size={16} />
+        </a>
+      </div>
+    </footer>
+  );
+
   return (
-    <div className="min-h-dvh bg-paper">
-      <Navigation tab={tab} onChange={setTab} matchCount={matches.length} />
-      <div className="md:ml-[236px] pb-[78px] md:pb-0">
-        <header className="h-[68px] md:h-[82px] border-b border-line px-6 md:px-11 flex gap-6 items-center">
-          <a href="/" aria-label="Coy" className="brand brand-mobile md:hidden">
-            coy<span>♥</span>
-          </a>
-          <span className="hidden md:block text-[9px] tracking-[.2em] text-muted">
-            YOUR NEXT CHAPTER
-          </span>
-          <div className="ml-auto flex items-center gap-1.5 text-[9px] md:text-[11px] text-muted">
-            <ShieldCheck size={14} className="text-[#aa8584]" /> Private until it’s mutual
-          </div>
-          <span className="avatar size-8 hidden md:grid text-[11px]">Y</span>
-        </header>
-        <main className="main-content" aria-label={tab === 'home' ? 'Home' : undefined}>
-          {tab !== 'home' && (
-            <>
-              <section className="mb-8 md:mb-9">
-                <p className="eyebrow">
-                  <span className="size-1 rounded-full bg-rose" /> MADE FOR A LITTLE SERENDIPITY
-                </p>
-                <h1 className="text-[28px] md:text-[35px] tracking-[-1.4px] leading-tight font-medium mt-3 mb-3">
-                  {tab === 'discover' ? 'Meet someone. Feel something' : 'The feeling is mutual'}
-                  <span className="text-rose">.</span>
+    <div className="app-shell">
+      <a className="skip-link" href="#main-content">
+        Skip to content
+      </a>
+      <Navigation tab={tab} onChange={changeTab} matchCount={matches.length} />
+      <main id="main-content" className="app-main" aria-label={tab === 'home' ? 'Home' : undefined}>
+        {tab === 'discover' && (
+          <>
+            <section className="discovery-hero">
+              <div className="hero-copy">
+                <span className="sticker">
+                  <LockKeyhole size={18} aria-hidden="true" />
+                  Your likes stay private
+                </span>
+                <h1>
+                  Find someone
+                  <br />
+                  you like.
                 </h1>
-                <p className="text-[11px] md:text-xs text-muted leading-5">
-                  {tab === 'discover'
-                    ? 'A new face. A shared interest. Maybe a little spark.'
-                    : 'A little courage brought you both here. See who you connected with.'}
+                <p className="lede">
+                  Swipe right to like. You’ll only find out when they like you too.
                 </p>
-              </section>
-              {swipeError && (
-                <div role="alert" className="error-banner mb-6">
-                  <p>{swipeError} Your card is still here.</p>
-                  <button
-                    className="flex shrink-0 gap-1 items-center underline"
-                    onClick={refresh}
-                    disabled={busy}
-                  >
-                    <RefreshCw size={12} /> Refresh
-                  </button>
-                </div>
-              )}
-              {tab === 'discover' ? (
-                <div className="discovery-layout">
-                  <SwipeDeck
-                    profiles={profiles}
-                    loading={loading}
-                    busy={busy || !!match}
-                    error={loadError}
-                    onDecision={decide}
-                    onRetry={refresh}
-                    onMatches={() => setTab('matches')}
-                    direction={direction}
-                  />
-                  <DiscoveryNotes />
-                </div>
-              ) : loading || loadError ? (
-                <div className="max-w-[390px] mx-auto">
-                  <SwipeDeck
-                    profiles={[]}
-                    loading={loading}
-                    busy={false}
-                    error={loadError}
-                    onRetry={refresh}
-                  />
-                </div>
-              ) : (
-                <MatchesList matches={matches} onDiscover={() => setTab('discover')} />
-              )}
-              <footer className="mt-8 border-t border-line py-5 flex justify-between text-[9px] text-[#ab9f99]">
-                <span className="text-[7px] tracking-[.18em]">A LITTLE COURAGE. A LITTLE COY.</span>
-                <span className="hidden sm:block">Thoughtful connections, always.</span>
-              </footer>
-            </>
-          )}
-        </main>
-      </div>
-      <div className="sr-only" role="status" aria-live="polite">
+                <a href="#how" className="hero-link">
+                  How discovery works <ArrowUpRight size={18} />
+                </a>
+              </div>
+              <div className="hero-deck">
+                {swipeError && (
+                  <div role="alert" className="error-banner">
+                    <p>{swipeError} Your card is still here.</p>
+                    <button className="text-button" onClick={refresh} disabled={busy}>
+                      <RefreshCw size={15} />
+                      Refresh
+                    </button>
+                  </div>
+                )}
+                <SwipeDeck
+                  profiles={profiles}
+                  loading={loading}
+                  busy={busy || !!match}
+                  error={loadError}
+                  onDecision={decide}
+                  onRetry={refresh}
+                  onMatches={() => changeTab('matches')}
+                  direction={direction}
+                />
+              </div>
+            </section>
+            <section className="privacy-band" aria-label="Matching privacy">
+              <div className="band-inner">
+                <h2>Two likes. One match.</h2>
+                <p>We don’t reveal one-sided likes. Ever.</p>
+              </div>
+            </section>
+            <DiscoveryNotes />
+            {footer}
+          </>
+        )}
+        {tab === 'matches' && (
+          <>
+            <section className="matches-heading">
+              <span className="sticker">
+                <Heart size={18} aria-hidden="true" />
+                Only mutual connections
+              </span>
+              <h1>Your matches.</h1>
+              <p className="lede">You liked them. They liked you too.</p>
+            </section>
+            {loading ? (
+              <div className="matches-empty state-panel" role="status">
+                <RefreshCw className="spinner" size={30} />
+                <h2>Loading matches…</h2>
+              </div>
+            ) : loadError ? (
+              <div className="matches-empty state-panel">
+                <h2>Couldn’t load matches.</h2>
+                <p>{loadError}</p>
+                <button className="btn btn-small" onClick={refresh}>
+                  Try again
+                </button>
+              </div>
+            ) : (
+              <MatchesList matches={matches} onDiscover={() => changeTab('discover')} />
+            )}
+            {footer}
+          </>
+        )}
+      </main>
+      <p className="sr-only" role="status" aria-live="polite">
         {notice}
-      </div>
+      </p>
       {notice && (
         <div className="toast" aria-hidden="true">
-          <ShieldCheck size={15} />
           {notice}
         </div>
       )}
@@ -186,7 +206,7 @@ export default function Page() {
         onClose={() => setMatch(null)}
         onMatches={() => {
           setMatch(null);
-          setTab('matches');
+          changeTab('matches');
         }}
       />
     </div>

@@ -20,8 +20,10 @@ test('mutual match, persistence, blank Home, and swipe privacy work together', a
   if ((await swipeResponse.json()).matched) {
     await expect(page.getByRole('dialog')).toBeVisible();
     await expect(page.getByRole('heading', { name: 'It’s a match!' })).toBeVisible();
+    await page.screenshot({ path: test.info().outputPath('match.png'), fullPage: true });
     await page.getByRole('button', { name: 'See your matches', exact: true }).click();
     await expect(page.getByRole('region', { name: 'Mutual matches' })).toContainText(first.name);
+    await page.screenshot({ path: test.info().outputPath('matches.png'), fullPage: true });
     await page.reload();
     await page.getByRole('button', { name: /Matches/ }).click();
     await expect(page.getByRole('region', { name: 'Mutual matches' })).toContainText(first.name);
@@ -57,14 +59,14 @@ test('empty states and load errors are distinct and can recover', async ({ page 
     route.fulfill({ contentType: 'application/json', body: JSON.stringify({ matches: [] }) }),
   );
   await page.goto('/');
-  await expect(page.getByRole('heading', { name: 'A little pause.' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Couldn’t load profiles.' })).toBeVisible();
   await page.route('**/api/feed', (route) =>
     route.fulfill({ contentType: 'application/json', body: JSON.stringify({ profiles: [] }) }),
   );
   await page.getByRole('button', { name: 'Try again' }).click();
   await expect(page.getByRole('heading', { name: 'You’re all caught up.' })).toBeVisible();
   await page.getByRole('button', { name: 'See your matches' }).click();
-  await expect(page.getByRole('heading', { name: 'Something good is on its way.' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'No matches yet.' })).toBeVisible();
 });
 
 test('dragging a card saves a pass; server failures keep the card available', async ({ page }) => {

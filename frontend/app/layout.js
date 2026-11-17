@@ -1,9 +1,8 @@
 import './globals.css';
 
 export const metadata = {
-  title: 'Coy — A little curiosity. A real connection.',
-  description:
-    'Discover someone new. Your likes stay private until the feeling is mutual. A standalone Coy assignment demo.',
+  title: 'Coy Discover',
+  description: 'Discover profiles, like privately, and connect when the interest is mutual.',
 };
 export default function RootLayout({ children }) {
   return (

@@ -10,6 +10,8 @@ A swipe-based Discover tab for the Coy SDE Intern assignment. Built with a Next.
 
 Requires Node.js 22.18+ and npm.
 
+The UI follows [Coy’s website](https://getcoy.com/), including its wordmark, Bricolage Grotesque font, colors, and button styles. The font license is included in `frontend/public/fonts/OFL.txt`.
+
 The backend uses npm overrides for patched Prisma configuration dependencies.
 
 ## Local setup
