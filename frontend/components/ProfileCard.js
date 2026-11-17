@@ -1,9 +1,17 @@
 'use client';
-import { motion, useMotionValue, useTransform, useReducedMotion, animate } from 'framer-motion';
+import {
+  motion,
+  useMotionValue,
+  useTransform,
+  useReducedMotion,
+  useIsPresent,
+  animate,
+} from 'framer-motion';
 import { MapPin } from 'lucide-react';
 import Portrait from './Portrait';
 
-export default function ProfileCard({ profile, busy, onDecision, direction }) {
+export default function ProfileCard({ profile, busy, onDecision }) {
+  const isPresent = useIsPresent();
   const reduced = useReducedMotion();
   const x = useMotionValue(0);
   const rotate = useTransform(x, [-200, 0, 200], [-12, 2, 12]);
@@ -13,20 +21,26 @@ export default function ProfileCard({ profile, busy, onDecision, direction }) {
   return (
     <motion.article
       className="profile-card"
-      data-testid="profile-card"
+      data-testid={isPresent ? 'profile-card' : 'exiting-profile-card'}
       aria-label={profile.name + ', ' + profile.age}
-      style={{ x, rotate: reduced ? 0 : rotate }}
+      aria-hidden={!isPresent}
+      style={{
+        x,
+        rotate: reduced ? 0 : rotate,
+        zIndex: isPresent ? 1 : 2,
+        pointerEvents: isPresent ? 'auto' : 'none',
+      }}
       initial={{ opacity: 0, y: reduced ? 0 : 10 }}
       animate={{ opacity: 1, y: 0 }}
-      exit={{
-        x: reduced ? 0 : direction === 'like' ? 480 : -480,
-        opacity: 0,
-        rotate: reduced ? 0 : direction === 'like' ? 14 : -14,
+      variants={{
+        exit: (direction) => ({
+          x: reduced || direction === 'restore' ? 0 : direction === 'like' ? 480 : -480,
+          opacity: 0,
+        }),
       }}
+      exit="exit"
       transition={{ duration: reduced ? 0 : 0.24 }}
-      drag={busy ? false : 'x'}
-      dragConstraints={{ left: 0, right: 0 }}
-      dragElastic={0.85}
+      drag={busy || !isPresent ? false : 'x'}
       dragMomentum={false}
       onDragEnd={(_event, info) => {
         if (
@@ -34,7 +48,7 @@ export default function ProfileCard({ profile, busy, onDecision, direction }) {
           Math.abs(info.offset.x) >= 85 &&
           Math.abs(info.offset.x) > Math.abs(info.offset.y)
         ) {
-          onDecision(info.offset.x > 0 ? 'like' : 'pass');
+          if (onDecision(info.offset.x > 0 ? 'like' : 'pass')) return;
         }
         animate(x, 0, { duration: reduced ? 0 : 0.18 });
       }}

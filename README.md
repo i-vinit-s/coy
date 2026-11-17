@@ -103,7 +103,9 @@ Actions are `like` or `pass`. Invalid input returns 400, unknown profiles 404, a
 
 Swipes are saved before a response is sent. A unique user/profile constraint prevents duplicate decisions, including concurrent requests. Matches are derived from reciprocal likes.
 
-The feed returns only public profile fields. Passes and one-sided likes both return `{ "matched": false, "match": null }`. Incoming likes are never sent to the frontend. Failed saves keep the current card available; conflicts refresh the feed.
+The feed returns only public profile fields. Passes and one-sided likes both return `{ "matched": false, "match": null }`. Incoming likes are never sent to the frontend.
+
+Cards move immediately while decisions save in order in the background. If a save fails, that card and any queued unsaved cards return in order with a retry option. Confirmed decisions stay excluded. Matches appear only after server confirmation; conflicts refresh the feed.
 
 There is one shared demo account and no authentication, as allowed by the assignment. A real multi-user app would need authenticated accounts and per-user authorization.
 

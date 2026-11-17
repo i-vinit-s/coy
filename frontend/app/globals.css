@@ -290,6 +290,7 @@ a {
 }
 .card-stack {
   position: relative;
+  display: grid;
   margin: 0 6px;
 }
 .card-back {
@@ -301,6 +302,7 @@ a {
   border-radius: 26px;
 }
 .profile-card {
+  grid-area: 1 / 1;
   position: relative;
   overflow: hidden;
   border: var(--edge);
@@ -355,6 +357,7 @@ a {
   margin: 0 2px;
 }
 .profile-bio {
+  min-height: 4.35em;
   margin: 14px 0;
   font-size: 16px;
   line-height: 1.45;
@@ -410,6 +413,7 @@ a {
   font-size: 14px;
 }
 .error-banner {
+  margin-top: 20px;
   display: flex;
   align-items: center;
   justify-content: space-between;

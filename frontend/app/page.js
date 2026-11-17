@@ -1,7 +1,8 @@
 'use client';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { LockKeyhole, RefreshCw, ArrowUpRight, Heart } from 'lucide-react';
-import { getFeed, getMatches, sendSwipe } from '../lib/api';
+import { getFeed, getMatches } from '../lib/api';
+import useSwipeQueue from '../lib/useSwipeQueue';
 import Navigation from '../components/Navigation';
 import SwipeDeck from '../components/SwipeDeck';
 import DiscoveryNotes from '../components/DiscoveryNotes';
@@ -14,19 +15,44 @@ export default function Page() {
   const [matches, setMatches] = useState([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState('');
-  const [swipeError, setSwipeError] = useState('');
-  const [busy, setBusy] = useState(false);
-  const [direction, setDirection] = useState('like');
   const [match, setMatch] = useState(null);
   const [notice, setNotice] = useState('');
-  const locked = useRef(false);
+  const matchQueue = useRef([]);
   const loadVersion = useRef(0);
 
+  const confirmMatch = useCallback((profile) => {
+    matchQueue.current.push(profile);
+    setMatch(matchQueue.current[0]);
+  }, []);
+
+  const {
+    decide,
+    retry,
+    clearError,
+    hasPending,
+    finishAnimation,
+    animating,
+    recovering,
+    pendingCount,
+    direction,
+    error: swipeError,
+    failedSwipe,
+  } = useSwipeQueue({
+    profiles,
+    setProfiles,
+    setMatches,
+    onMatch: confirmMatch,
+    setNotice,
+    canSwipe: () => !loading && !loadError && matchQueue.current.length === 0,
+  });
+  const busy = animating || recovering || !!match;
+
   const refresh = useCallback(async () => {
+    if (hasPending()) return;
     const version = ++loadVersion.current;
     setLoading(true);
     setLoadError('');
-    setSwipeError('');
+    clearError();
     try {
       const [feed, mutual] = await Promise.all([getFeed(), getMatches()]);
       if (version !== loadVersion.current) return;
@@ -37,7 +63,7 @@ export default function Page() {
     } finally {
       if (version === loadVersion.current) setLoading(false);
     }
-  }, []);
+  }, [hasPending, clearError]);
 
   useEffect(() => {
     refresh();
@@ -54,40 +80,19 @@ export default function Page() {
   // Sync decisions from other tabs when returning to this one.
   useEffect(() => {
     const onVisible = () => {
-      if (document.visibilityState === 'visible' && !locked.current && !match) refresh();
+      if (document.visibilityState === 'visible' && !hasPending() && !match) refresh();
     };
     document.addEventListener('visibilitychange', onVisible);
     return () => document.removeEventListener('visibilitychange', onVisible);
-  }, [refresh, match]);
+  }, [refresh, match, hasPending]);
 
-  async function decide(action) {
-    const profile = profiles[0];
-    if (!profile || locked.current || loading || match || loadError) return;
-    locked.current = true;
-    setBusy(true);
-    setSwipeError('');
-    setDirection(action);
-    try {
-      const result = await sendSwipe(profile.id, action);
-      setProfiles((current) => current.filter((p) => p.id !== profile.id));
-      if (result.matched) {
-        setMatches((current) => [result.match, ...current.filter((p) => p.id !== result.match.id)]);
-        setMatch(result.match);
-      } else setNotice(action === 'like' ? 'Like saved.' : 'Passed.');
-      // Keep controls locked until the card's exit animation finishes.
-      await new Promise((resolve) => setTimeout(resolve, 260));
-    } catch (error) {
-      if (error.status === 409) {
-        await refresh();
-        setNotice('Feed updated.');
-      } else setSwipeError(error.message);
-    } finally {
-      locked.current = false;
-      setBusy(false);
-    }
+  function dismissMatch() {
+    matchQueue.current.shift();
+    setMatch(matchQueue.current[0] || null);
   }
 
   function changeTab(next) {
+    finishAnimation();
     setTab(next);
     window.scrollTo({ top: 0, behavior: 'instant' });
   }
@@ -132,25 +137,32 @@ export default function Page() {
                 </a>
               </div>
               <div className="hero-deck">
-                {swipeError && (
-                  <div role="alert" className="error-banner">
-                    <p>{swipeError} Your card is still here.</p>
-                    <button className="text-button" onClick={refresh} disabled={busy}>
-                      <RefreshCw size={15} />
-                      Refresh
-                    </button>
-                  </div>
-                )}
                 <SwipeDeck
                   profiles={profiles}
                   loading={loading}
-                  busy={busy || !!match}
+                  busy={busy}
+                  animating={animating}
+                  pendingCount={pendingCount}
                   error={loadError}
                   onDecision={decide}
                   onRetry={refresh}
                   onMatches={() => changeTab('matches')}
                   direction={direction}
+                  onExitComplete={finishAnimation}
                 />
+                {swipeError && (
+                  <div role="alert" className="error-banner">
+                    <p>{swipeError}</p>
+                    <button
+                      className="text-button"
+                      onClick={failedSwipe ? retry : refresh}
+                      disabled={busy}
+                    >
+                      <RefreshCw size={15} />
+                      {failedSwipe ? 'Retry ' + failedSwipe.action : 'Refresh'}
+                    </button>
+                  </div>
+                )}
               </div>
             </section>
             <section className="privacy-band" aria-label="Matching privacy">
@@ -202,10 +214,10 @@ export default function Page() {
         </div>
       )}
       <MatchModal
-        match={match}
-        onClose={() => setMatch(null)}
+        match={animating ? null : match}
+        onClose={dismissMatch}
         onMatches={() => {
-          setMatch(null);
+          dismissMatch();
           changeTab('matches');
         }}
       />

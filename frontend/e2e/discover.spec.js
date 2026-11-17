@@ -34,7 +34,12 @@ test('mutual match, persistence, blank Home, and swipe privacy work together', a
     `${first.name}, ${first.age}`,
   );
   const before = await page.getByTestId('profile-card').getAttribute('aria-label');
-  await page.getByRole('button', { name: /^Pass on / }).click();
+  await Promise.all([
+    page.waitForResponse(
+      (response) => response.url().endsWith('/api/swipe') && response.request().method() === 'POST',
+    ),
+    page.getByRole('button', { name: /^Pass on / }).click(),
+  ]);
   await expect(page.getByTestId('profile-card')).not.toHaveAttribute('aria-label', before);
   await page.reload();
   await expect(page.getByTestId('profile-card')).not.toHaveAttribute('aria-label', before);
@@ -89,8 +94,6 @@ test('dragging a card saves a pass; server failures keep the card available', as
     }),
   );
   await page.getByRole('button', { name: /^Pass on / }).click();
-  await expect(
-    page.getByRole('alert').filter({ hasText: 'Your card is still here.' }),
-  ).toBeVisible();
+  await expect(page.getByRole('alert').filter({ hasText: 'Your card is back.' })).toBeVisible();
   await expect(card).toHaveAttribute('aria-label', current);
 });
