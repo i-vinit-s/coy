@@ -1,0 +1,36 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// Includes the demo user and discoverable profiles.
+model User {
+  id             String   @id
+  name           String
+  age            Int
+  photoUrl       String
+  bio            String
+  location       String
+  college        String
+  interests      Json
+  createdAt      DateTime @default(now())
+  outgoingSwipes Swipe[]  @relation("Author")
+  incomingSwipes Swipe[]  @relation("Target")
+}
+
+model Swipe {
+  id        String   @id @default(cuid())
+  userId    String
+  profileId String
+  action    String
+  createdAt DateTime @default(now())
+  user      User     @relation("Author", fields: [userId], references: [id], onDelete: Cascade)
+  profile   User     @relation("Target", fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, profileId])
+  @@index([profileId, action])
+}
